@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dragonfly Takes the Stone</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #d0f0f8; font-family: sans-serif; }
+    canvas { display: block; }
+    #endMessage {
+      position: absolute;
+      top: 40%; left: 50%;
+      transform: translate(-50%,-50%);
+      background: rgba(255,255,255,0.9);
+      padding: 18px; font-size: 20px; border-radius: 10px;
+      display: none; text-align: center;
+    }
+    #hint {
+      position: absolute; left: 8px; bottom: 8px;
+      background: rgba(255,255,255,0.7); padding: 6px 8px; border-radius: 6px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  <div id="endMessage">🎉 You took the stone and escaped! 🎉</div>
+  <div id="hint">Use Arrow keys or WASD to move</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  // keep stone roughly centered after resize
+  stone.x = canvas.width / 2;
+  stone.y = canvas.height / 2;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// <-- IMAGE: put your dragonfly file in same folder and name it "dragonfly.jpg" -->
+const dragonflyImg = new Image();
+dragonflyImg.src = 'dragonfly.pn'; // change if your filename differs (better to avoid spaces)
+
+const dragonfly = {
+  x: 100, y: 100,
+  width: 120, height: 60,
+  speed: 5, carrying: false
+};
+
+const stone = { x: canvas.width/2, y: canvas.height/2, size: 25, taken: false };
+
+const keys = {
+  ArrowUp:false, ArrowDown:false, ArrowLeft:false, ArrowRight:false,
+  w:false, a:false, s:false, d:false
+};
+
+window.addEventListener('keydown', e => {
+  const k = e.key;
+  if (k in keys) keys[k] = true;
+});
+window.addEventListener('keyup', e => {
+  const k = e.key;
+  if (k in keys) keys[k] = false;
+});
+
+function moveDragonfly() {
+  if (keys.ArrowUp || keys.w) dragonfly.y -= dragonfly.speed;
+  if (keys.ArrowDown || keys.s) dragonfly.y += dragonfly.speed;
+  if (keys.ArrowLeft || keys.a) dragonfly.x -= dragonfly.speed;
+  if (keys.ArrowRight || keys.d) dragonfly.x += dragonfly.speed;
+
+  // Keep inside canvas
+  dragonfly.x = Math.max(0, Math.min(canvas.width - dragonfly.width, dragonfly.x));
+  dragonfly.y = Math.max(0, Math.min(canvas.height - dragonfly.height, dragonfly.y));
+}
+
+function checkCollision() {
+  // Use approximate center-to-center circle collision
+  const centerX = dragonfly.x + dragonfly.width / 2;
+  const centerY = dragonfly.y + dragonfly.height / 2;
+  const dx = centerX - stone.x;
+  const dy = centerY - stone.y;
+  const dist = Math.hypot(dx, dy);
+
+  // approximate dragonfly radius
+  const dfRadius = Math.max(dragonfly.width, dragonfly.height) * 0.35;
+
+  if (!stone.taken && dist < stone.size + dfRadius) {
+    stone.taken = true;
+    dragonfly.carrying = true;
+  }
+}
+
+function checkWin() {
+  const centerX = dragonfly.x + dragonfly.width / 2;
+  const centerY = dragonfly.y + dragonfly.height / 2;
+  // top-right "escape" zone
+  if (dragonfly.carrying && centerX > canvas.width - 60 && centerY < 60) {
+    document.getElementById('endMessage').style.display = 'block';
+    cancelAnimationFrame(animId);
+  }
+}
+
+function drawScene() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // draw stone if not taken
+  if (!stone.taken) {
+    ctx.fillStyle = '#b28f00';
+    ctx.beginPath(); ctx.arc(stone.x, stone.y, stone.size, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#7a6400'; ctx.lineWidth = 2; ctx.stroke();
+  }
+
+  // draw dragonfly (image)
+  if (dragonflyImg.complete && dragonflyImg.naturalWidth !== 0) {
+    ctx.drawImage(dragonflyImg, dragonfly.x, dragonfly.y, dragonfly.width, dragonfly.height);
+  } else {
+    // fallback rectangle if image not available
+    ctx.fillStyle = '#4a90e2';
+    ctx.fillRect(dragonfly.x, dragonfly.y, dragonfly.width, dragonfly.height);
+  }
+
+  // if carrying, draw the stone attached to dragonfly
+  if (dragonfly.carrying) {
+    const stoneX = dragonfly.x + dragonfly.width * 0.75;
+    const stoneY = dragonfly.y + dragonfly.height * 0.6;
+    ctx.fillStyle = '#ccc933';
+    ctx.beginPath(); ctx.arc(stoneX, stoneY, stone.size, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#9a8611'; ctx.lineWidth = 2; ctx.stroke();
+  }
+}
+
+function loop() {
+  moveDragonfly();
+  checkCollision();
+  checkWin();
+  drawScene();
+  animId = requestAnimationFrame(loop);
+}
+
+let animId = null;
+
+// start loop when image loaded; if it fails, start anyway (with fallback)
+dragonflyImg.onload = () => {
+  // you can adjust initial position/size after knowing image dimensions if you want
+  loop();
+};
+dragonflyImg.onerror = () => {
+  console.warn('Dragonfly image failed to load — using fallback shape. Make sure dragonfly.jpg is in same folder.');
+  loop();
+}
+</script>
+</body>
+</html>

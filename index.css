@@ -1,0 +1,26 @@
+/* Reset margins and set full screen */
+body {
+  margin: 0;
+  overflow: hidden;
+  font-family: sans-serif;
+}
+
+/* Fullscreen canvas */
+canvas {
+  display: block;
+}
+
+/* End message styling */
+#endMessage {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.85);
+  padding: 20px 30px;
+  font-size: 24px;
+  border-radius: 10px;
+  display: none;
+  text-align: center;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.3);
+}
